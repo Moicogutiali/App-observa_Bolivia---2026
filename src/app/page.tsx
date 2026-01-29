@@ -1,65 +1,82 @@
-import Image from "next/image";
+import Link from 'next/link'
+import { ArrowRight, BarChart3, PhoneCall, ShieldCheck } from 'lucide-react'
 
 export default function Home() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
+    <div className="flex flex-col min-h-screen">
+      <header className="p-6 flex justify-between items-center glass sticky top-0 z-50">
+        <div className="flex items-center space-x-2">
+          <ShieldCheck className="text-primary" size={24} />
+          <span className="font-bold text-xl tracking-tight">Observa Bolivia</span>
+        </div>
+        <Link
+          href="/login"
+          className="bg-primary text-white px-6 py-2 rounded-full font-medium hover:bg-primary/90 transition-all shadow-md active:scale-95"
+        >
+          Acceder
+        </Link>
+      </header>
+
+      <main className="flex-grow">
+        {/* Hero Section */}
+        <section className="py-20 px-6 text-center space-y-8 max-w-4xl mx-auto">
+          <div className="inline-block px-4 py-1.5 bg-primary/10 text-primary rounded-full text-sm font-semibold mb-4">
+            Subnacionales 2026
+          </div>
+          <h1 className="text-5xl md:text-7xl font-extrabold tracking-tighter bg-clip-text text-transparent bg-gradient-to-r from-primary via-blue-600 to-accent">
+            Tecnología para la Transparencia Electoral
           </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+          <p className="text-xl text-muted-foreground leading-relaxed max-w-2xl mx-auto">
+            Plataforma integral de observación ciudadana con capacidades offline,
+            geolocalización en tiempo real y análisis estadístico avanzado.
           </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
+          <div className="pt-8">
+            <Link
+              href="/login"
+              className="inline-flex items-center space-x-2 bg-foreground text-background px-8 py-4 rounded-full text-lg font-bold hover:opacity-90 transition-all shadow-xl"
+            >
+              <span>Comenzar Registro</span>
+              <ArrowRight size={20} />
+            </Link>
+          </div>
+        </section>
+
+        {/* Features Grid */}
+        <section className="py-20 px-6 bg-primary/5">
+          <div className="max-w-6xl mx-auto grid md:grid-cols-3 gap-8">
+            <div className="glass p-8 rounded-3xl space-y-4 hover:translate-y-[-4px] transition-all">
+              <div className="w-12 h-12 bg-primary rounded-2xl flex items-center justify-center text-white mb-2 shadow-lg">
+                <ShieldCheck size={24} />
+              </div>
+              <h3 className="text-xl font-bold">Offline-First</h3>
+              <p className="text-muted-foreground">Registra reportes sin conexión a internet. Sincronización automática al recuperar señal.</p>
+            </div>
+
+            <div className="glass p-8 rounded-3xl space-y-4 hover:translate-y-[-4px] transition-all">
+              <div className="w-12 h-12 bg-accent rounded-2xl flex items-center justify-center text-white mb-2 shadow-lg">
+                <PhoneCall size={24} />
+              </div>
+              <h3 className="text-xl font-bold">Call Center 800</h3>
+              <p className="text-muted-foreground">Respaldo por voz para zonas de baja cobertura con integración VoIP y registro centralizado.</p>
+            </div>
+
+            <div className="glass p-8 rounded-3xl space-y-4 hover:translate-y-[-4px] transition-all">
+              <div className="w-12 h-12 bg-success rounded-2xl flex items-center justify-center text-white mb-2 shadow-lg">
+                <BarChart3 size={24} />
+              </div>
+              <h3 className="text-xl font-bold">Real-Time Data</h3>
+              <p className="text-muted-foreground">Dashboards interactivos con latencia mínima para la toma de decisiones estratégicas.</p>
+            </div>
+          </div>
+        </section>
       </main>
+
+      <footer className="p-12 border-t border-border/50 text-center text-muted-foreground">
+        <div className="max-w-4xl mx-auto space-y-4">
+          <p>© 2026 Fundación CONSTRUIR. Todos los derechos reservados.</p>
+          <p className="text-xs">Financiado por la Unión Europea y el Fondo Canadiense.</p>
+        </div>
+      </footer>
     </div>
-  );
+  )
 }
