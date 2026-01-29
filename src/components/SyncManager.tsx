@@ -41,14 +41,16 @@ export default function SyncManager() {
 
         for (const report of pending) {
             try {
-                // --- AUTO-CLEANUP LOGIC ---
-                // If the report uses a mock ID, delete it and continue.
-                // Mock IDs cause UUID validation errors in Postgres.
+                // --- DEACTIVATED PURGE LOGIC ---
+                // We keep mock reports in local queue so they don't disappear, 
+                // but they will naturally fail sync due to DB constraints.
+                /*
                 if (report.recinto_id.includes('mock-')) {
                     console.warn('Purging invalid mock report from sync queue:', report.id)
                     if (report.id) await deletePendingReport(report.id)
                     continue
                 }
+                */
 
                 let imageUrl = null
 

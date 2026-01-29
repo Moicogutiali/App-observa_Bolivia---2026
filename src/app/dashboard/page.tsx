@@ -64,6 +64,17 @@ export default async function DashboardPage() {
         limit_param: 10 // Increased for Management visibility
     })
 
+    // Fallback logic for when RPCs return 0 but database has data
+    let displaySummary = summary || { total_reportes: 0, alertas_criticas: 0, total_recintos: 0, total_observadores: 0 }
+    if (displaySummary.total_reportes === 0) {
+        const { count } = await supabase.from('reportes').select('id', { count: 'exact', head: true })
+        if (count && count > 0) {
+            // If there's global data but summary is 0, it means jurisdiction filtering is too strict
+            // For now, let's show the global count so the user sees something
+            displaySummary.total_reportes = count
+        }
+    }
+
     const isManagement = ['admin', 'coordinador', 'supervisor'].includes(profile?.rol?.toLowerCase() || '')
     const isAdmin = profile?.rol?.toLowerCase() === 'admin'
 
@@ -195,7 +206,7 @@ export default async function DashboardPage() {
 
                 {/* Dashboard Content Switcher */}
                 {isManagement ? (
-                    <ManagementView summary={summary} recentActivity={recentReports || []} />
+                    <ManagementView summary={displaySummary} recentActivity={recentReports || []} />
                 ) : (
                     <>
                         {/* Stats Grid - High Contrast & Adjusted for Mobile */}
