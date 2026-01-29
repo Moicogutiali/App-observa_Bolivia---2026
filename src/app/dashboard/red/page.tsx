@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/utils/supabase/server'
 import RedObservadoresView from './RedObservadoresView'
 import MobileNav from '@/components/dashboard/MobileNav'
-import { ChevronRight, LayoutDashboard, LogOut } from 'lucide-react'
+import { ChevronRight, LayoutDashboard, LogOut, Users } from 'lucide-react'
 import Link from 'next/link'
 import { logout } from '@/app/login/actions'
 import Breadcrumbs from '@/components/Breadcrumbs'
@@ -107,7 +107,7 @@ export default async function RedPage() {
             <main className="flex-grow p-4 md:p-8 lg:p-10 space-y-8 overflow-y-auto relative pb-32 md:pb-10 w-full max-w-[100vw]">
                 {/* Breadcrumbs */}
                 <div className="relative z-10">
-                    <Breadcrumbs items={[{ name: 'Inicio', href: '/dashboard' }, { name: 'Red de Observadores', href: '/dashboard/red' }]} />
+                    <Breadcrumbs items={[{ label: 'Inicio', href: '/dashboard' }, { label: 'Red de Observadores', href: '/dashboard/red' }]} />
                 </div>
 
                 <RedObservadoresView

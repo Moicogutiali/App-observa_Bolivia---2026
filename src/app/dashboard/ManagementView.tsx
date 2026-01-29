@@ -15,13 +15,13 @@ import {
     Users,
     ShieldAlert,
     FileText,
-    Map,
     ArrowUpRight,
     ArrowDownRight,
     SearchX,
     Database,
     Loader2,
-    Activity
+    Activity,
+    Map as TerritoryIcon
 } from 'lucide-react'
 import { getPendingReports } from '@/utils/offline-db'
 
@@ -214,7 +214,7 @@ export default function ManagementView({
                 {[
                     { label: 'Total Reportes', val: summary?.total_reportes || 0, icon: FileText, color: 'primary', trend: '+0%', isUp: true },
                     { label: 'Incidencias', val: summary?.alertas_criticas || 0, icon: ShieldAlert, color: 'accent', trend: 'Sin Alertas', isUp: true },
-                    { label: 'Recintos', val: summary?.total_recintos || 0, icon: Map, color: 'success', trend: '85% Cobertura', isUp: true },
+                    { label: 'Recintos', val: summary?.total_recintos || 0, icon: TerritoryIcon, color: 'success', trend: '85% Cobertura', isUp: true },
                     { label: 'En Línea', val: summary?.observadores_online || 0, icon: Activity, color: 'blue-500', trend: 'Tiempo Real', isUp: true },
                 ].map((kpi, i) => (
                     <div key={i} className="bg-[#0F1420]/60 border border-white/5 p-6 rounded-3xl flex flex-col justify-between h-40 group hover:border-white/20 transition-all relative overflow-hidden shadow-2xl">
