@@ -7,15 +7,34 @@ import {
     FileText,
     AlertTriangle,
     Map as MapIcon,
-    Menu
+    Menu,
+    Users
 } from 'lucide-react'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { createClient } from '@/utils/supabase/client'
 
 export default function MobileNav() {
     const pathname = usePathname()
+    const [isManager, setIsManager] = useState(false)
+    const supabase = createClient()
 
-    // Helper to check active state
-    const isActive = (path: string) => pathname === path || pathname.startsWith(path + '/')
+    useEffect(() => {
+        async function checkRole() {
+            const { data: { user } } = await supabase.auth.getUser()
+            if (user) {
+                const { data: profile } = await supabase
+                    .from('usuarios')
+                    .select('rol')
+                    .eq('id', user.id)
+                    .single()
+
+                if (profile && ['admin', 'coordinador', 'supervisor'].includes(profile.rol?.toLowerCase())) {
+                    setIsManager(true)
+                }
+            }
+        }
+        checkRole()
+    }, [supabase])
 
     const navItems = [
         {
@@ -24,6 +43,11 @@ export default function MobileNav() {
             icon: LayoutDashboard,
             exact: true
         },
+        ...(isManager ? [{
+            label: 'Red',
+            href: '/dashboard/red',
+            icon: Users
+        }] : []),
         {
             label: 'Apertura',
             href: '/dashboard/reportar/apertura',
@@ -33,11 +57,6 @@ export default function MobileNav() {
             label: 'Incidencias',
             href: '/dashboard/reportar/incidencia',
             icon: AlertTriangle
-        },
-        {
-            label: 'Mapa',
-            href: '#', // Placeholder
-            icon: MapIcon
         }
     ]
 

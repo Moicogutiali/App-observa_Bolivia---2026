@@ -20,37 +20,33 @@ import {
     ArrowDownRight,
     SearchX,
     Database,
-    Loader2
+    Loader2,
+    Activity
 } from 'lucide-react'
 import { getPendingReports } from '@/utils/offline-db'
 
-// Mock Data for Infrastructure (This should ideally come from DB)
-const DEPARTMENT_DATA = [
-    { name: 'La Paz', reports: 120, alerts: 12, seats: 450, recintos: 1200 },
-    { name: 'Santa Cruz', reports: 145, alerts: 5, seats: 380, recintos: 1100 },
-    { name: 'Cochabamba', reports: 98, alerts: 8, seats: 320, recintos: 950 },
-    { name: 'Oruro', reports: 45, alerts: 2, seats: 150, recintos: 450 },
-    { name: 'Potosí', reports: 32, alerts: 1, seats: 180, recintos: 520 },
-    { name: 'Tarija', reports: 56, alerts: 3, seats: 140, recintos: 410 },
-    { name: 'Chuquisaca', reports: 41, alerts: 0, seats: 160, recintos: 480 },
-    { name: 'Beni', reports: 28, alerts: 4, seats: 110, recintos: 320 },
-    { name: 'Pando', reports: 12, alerts: 1, seats: 45, recintos: 120 },
+// Mock Data for Infrastructure (Fallback if DB is empty)
+const DEFAULT_DEPT_DATA = [
+    { dept_name: 'La Paz', reports_count: 0, online_count: 0, total_recintos: 1200 },
+    { dept_name: 'Santa Cruz', reports_count: 0, online_count: 0, total_recintos: 1100 },
+    { dept_name: 'Cochabamba', reports_count: 0, online_count: 0, total_recintos: 950 },
+    { dept_name: 'Oruro', reports_count: 0, online_count: 0, total_recintos: 450 },
+    { dept_name: 'Potosí', reports_count: 0, online_count: 0, total_recintos: 520 },
+    { dept_name: 'Tarija', reports_count: 0, online_count: 0, total_recintos: 410 },
+    { dept_name: 'Chuquisaca', reports_count: 0, online_count: 0, total_recintos: 480 },
+    { dept_name: 'Beni', reports_count: 0, online_count: 0, total_recintos: 320 },
+    { dept_name: 'Pando', reports_count: 0, online_count: 0, total_recintos: 120 },
 ]
 
-const MUNICIPALITY_DATA: Record<string, any[]> = {
-    'La Paz': [
-        { name: 'La Paz (Cercado)', reports: 85, seats: 220, recintos: 650 },
-        { name: 'El Alto', reports: 60, seats: 180, recintos: 450 },
-        { name: 'Viacha', reports: 12, seats: 30, recintos: 60 },
-    ],
-    'Santa Cruz': [
-        { name: 'Santa Cruz de la Sierra', reports: 110, seats: 250, recintos: 750 },
-        { name: 'Montero', reports: 25, seats: 60, recintos: 150 },
-        { name: 'Warnes', reports: 15, seats: 40, recintos: 100 },
-    ],
-}
-
-export default function ManagementView({ summary, recentActivity }: { summary: any, recentActivity: any[] }) {
+export default function ManagementView({
+    summary,
+    recentActivity,
+    deptStats = []
+}: {
+    summary: any,
+    recentActivity: any[],
+    deptStats?: any[]
+}) {
     const [selectedDept, setSelectedDept] = useState('Todos')
     const [searchQuery, setSearchQuery] = useState('')
     const [showDeptDropdown, setShowDeptDropdown] = useState(false)
@@ -58,7 +54,23 @@ export default function ManagementView({ summary, recentActivity }: { summary: a
     const [offlineReports, setOfflineReports] = useState<any[]>([])
     const [loadingOffline, setLoadingOffline] = useState(true)
 
-    // Load Offline Data (to explain why totals might be 0)
+    // Merge DB Stats with Default list to ensure all depts are shown
+    const normalizedDeptData = useMemo(() => {
+        const statsMap = new Map(deptStats.map(s => [s.dept_name, s]))
+        return DEFAULT_DEPT_DATA.map(d => {
+            const live = statsMap.get(d.dept_name)
+            return {
+                name: d.dept_name,
+                reports: Number(live?.reports_count || d.reports_count),
+                online: Number(live?.online_count || d.online_count),
+                recintos: Number(live?.total_recintos || d.total_recintos),
+                // Mock seats for now as they aren't in the RPC yet
+                seats: Math.round(Number(live?.total_recintos || d.total_recintos) * 0.4)
+            }
+        })
+    }, [deptStats])
+
+    // Load Offline Data
     useEffect(() => {
         const loadOffline = async () => {
             try {
@@ -71,16 +83,15 @@ export default function ManagementView({ summary, recentActivity }: { summary: a
             }
         }
         loadOffline()
-        // Refresh every 10s if we have offline data
         const interval = setInterval(loadOffline, 10000)
         return () => clearInterval(interval)
     }, [])
 
     // Filter Logic
     const filteredReportsData = useMemo(() => {
-        if (selectedDept === 'Todos') return DEPARTMENT_DATA
-        return DEPARTMENT_DATA.filter(d => d.name === selectedDept)
-    }, [selectedDept])
+        if (selectedDept === 'Todos') return normalizedDeptData
+        return normalizedDeptData.filter(d => d.name === selectedDept)
+    }, [selectedDept, normalizedDeptData])
 
     const filteredActivity = useMemo(() => {
         const query = searchQuery.toLowerCase().trim()
@@ -95,23 +106,16 @@ export default function ManagementView({ summary, recentActivity }: { summary: a
         })
     }, [recentActivity, searchQuery])
 
-    const currentMunicipalities = useMemo(() => {
-        if (selectedDept === 'Todos') return []
-        return MUNICIPALITY_DATA[selectedDept] || [
-            { name: `${selectedDept} Capital`, reports: 0, seats: 100, recintos: 200 },
-        ]
-    }, [selectedDept])
-
     return (
         <div className="space-y-6 animate-in fade-in duration-500 relative">
-            {/* Control Bar - Fixed Search Issues */}
+            {/* Control Bar */}
             <div className="flex flex-col xl:flex-row gap-4 items-center justify-between bg-[#0F1420]/80 p-5 rounded-3xl border border-white/10 backdrop-blur-3xl shadow-2xl relative z-40">
                 <div className="flex items-center gap-3 w-full xl:w-auto overflow-x-auto pb-2 xl:pb-0 no-scrollbar">
                     <div className="relative">
                         <button
                             onClick={() => setShowDeptDropdown(!showDeptDropdown)}
                             type="button"
-                            className="flex items-center space-x-2 bg-white/5 border border-white/10 px-4 py-3 rounded-2xl text-xs font-black hover:bg-white/10 hover:border-primary/50 transition-all min-w-[200px] justify-between shadow-xl"
+                            className="flex items-center space-x-2 bg-white/5 border border-white/10 px-4 py-3 rounded-2xl text-xs font-black hover:bg-white/10 hover:border-primary/50 transition-all min-w-[200px] justify-between shadow-xl text-white"
                         >
                             <span className="flex items-center gap-2">
                                 <div className="p-1 bg-primary/20 rounded-md">
@@ -134,14 +138,14 @@ export default function ManagementView({ summary, recentActivity }: { summary: a
                                         {selectedDept === 'Todos' && <div className="w-1.5 h-1.5 rounded-full bg-primary" />}
                                     </button>
                                     <div className="h-px bg-white/5 my-2 mx-5" />
-                                    {DEPARTMENT_DATA.map(d => (
+                                    {DEFAULT_DEPT_DATA.map(d => (
                                         <button
-                                            key={d.name}
-                                            onClick={() => { setSelectedDept(d.name); setShowDeptDropdown(false); }}
-                                            className={`w-full text-left px-5 py-3 text-xs font-bold hover:bg-primary/10 transition-colors flex items-center justify-between ${selectedDept === d.name ? 'text-primary bg-primary/5' : 'text-muted-foreground'}`}
+                                            key={d.dept_name}
+                                            onClick={() => { setSelectedDept(d.dept_name); setShowDeptDropdown(false); }}
+                                            className={`w-full text-left px-5 py-3 text-xs font-bold hover:bg-primary/10 transition-colors flex items-center justify-between ${selectedDept === d.dept_name ? 'text-primary bg-primary/5' : 'text-muted-foreground'}`}
                                         >
-                                            {d.name}
-                                            {selectedDept === d.name && <div className="w-1.5 h-1.5 rounded-full bg-primary" />}
+                                            {d.dept_name}
+                                            {selectedDept === d.dept_name && <div className="w-1.5 h-1.5 rounded-full bg-primary" />}
                                         </button>
                                     ))}
                                 </div>
@@ -177,7 +181,20 @@ export default function ManagementView({ summary, recentActivity }: { summary: a
                 </div>
             </div>
 
-            {/* ERROR/ALERT: Missing Data Explanation */}
+            {/* Jurisdictional Warnings */}
+            {summary?.is_fallback && (
+                <div className="bg-primary/10 border border-primary/30 p-5 rounded-3xl flex items-center gap-4">
+                    <div className="p-3 bg-primary/20 rounded-2xl">
+                        <MapPin size={24} className="text-primary" />
+                    </div>
+                    <div>
+                        <p className="font-black text-white text-sm uppercase tracking-wider">Modo de Vista Global (Admin)</p>
+                        <p className="text-xs text-muted-foreground">Tu cuenta no tiene un departamento asignado, por lo que visualizas las estadísticas nacionales.</p>
+                    </div>
+                </div>
+            )}
+
+            {/* Offline reports banner */}
             {offlineReports.length > 0 && (
                 <div className="bg-accent/10 border border-accent/30 p-5 rounded-3xl flex items-center justify-between animate-pulse">
                     <div className="flex items-center gap-4">
@@ -185,31 +202,10 @@ export default function ManagementView({ summary, recentActivity }: { summary: a
                             <Database size={24} className="text-accent" />
                         </div>
                         <div>
-                            <p className="font-black text-white text-sm uppercase tracking-wider">Registros Pendientes de Sincronía</p>
-                            <p className="text-xs text-muted-foreground">Hay <strong>{offlineReports.length}</strong> reportes guardados en este dispositivo que aún no se han enviado al servidor.</p>
+                            <p className="font-black text-white text-sm uppercase tracking-wider">Sincronización Pendiente</p>
+                            <p className="text-xs text-muted-foreground">Tienes <strong>{offlineReports.length}</strong> reportes en este dispositivo que aún no se han subido.</p>
                         </div>
                     </div>
-                    <button className="flex items-center gap-2 px-6 py-2 bg-accent text-white rounded-full text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-transform">
-                        <RefreshCw size={14} /> Sincronizar Ahora
-                    </button>
-                </div>
-            )}
-
-            {summary?.total_reportes === 0 && offlineReports.length === 0 && !loadingOffline && (
-                <div className="bg-primary/5 border border-primary/20 p-6 rounded-3xl flex flex-col md:flex-row items-center gap-6">
-                    <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center text-primary shrink-0">
-                        <ShieldAlert size={32} />
-                    </div>
-                    <div className="space-y-1 flex-grow">
-                        <p className="font-black text-white uppercase tracking-[0.1em]">¿No ves tus reportes?</p>
-                        <p className="text-xs text-muted-foreground leading-relaxed">
-                            Asegúrate de haber seleccionado un <strong>Recinto Real</strong>. Los recintos marcados como (DEMO) no guardan datos en el servidor.
-                            También verifica que tu cuenta tenga un <strong>Departamento Asignado</strong> en el panel de Administración.
-                        </p>
-                    </div>
-                    <button className="px-6 py-3 bg-white/5 border border-white/10 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-white/10 transition-all">
-                        Solicitar Soporte
-                    </button>
                 </div>
             )}
 
@@ -219,7 +215,7 @@ export default function ManagementView({ summary, recentActivity }: { summary: a
                     { label: 'Total Reportes', val: summary?.total_reportes || 0, icon: FileText, color: 'primary', trend: '+0%', isUp: true },
                     { label: 'Incidencias', val: summary?.alertas_criticas || 0, icon: ShieldAlert, color: 'accent', trend: 'Sin Alertas', isUp: true },
                     { label: 'Recintos', val: summary?.total_recintos || 0, icon: Map, color: 'success', trend: '85% Cobertura', isUp: true },
-                    { label: 'Voluntarios', val: summary?.total_observadores || 0, icon: Users, color: 'blue-500', trend: 'Activos', isUp: true },
+                    { label: 'En Línea', val: summary?.observadores_online || 0, icon: Activity, color: 'blue-500', trend: 'Tiempo Real', isUp: true },
                 ].map((kpi, i) => (
                     <div key={i} className="bg-[#0F1420]/60 border border-white/5 p-6 rounded-3xl flex flex-col justify-between h-40 group hover:border-white/20 transition-all relative overflow-hidden shadow-2xl">
                         <div className="absolute top-0 right-0 p-6 opacity-[0.05] group-hover:opacity-10 transition-all -rotate-6 group-hover:rotate-0">
@@ -250,7 +246,7 @@ export default function ManagementView({ summary, recentActivity }: { summary: a
                                 <BarChart3 size={18} className="text-primary" />
                                 Monitor Territorial
                             </h4>
-                            <p className="text-[10px] text-muted-foreground mt-1 uppercase font-bold opacity-60">CARGA DE DATOS NACIONAL</p>
+                            <p className="text-[10px] text-muted-foreground mt-1 uppercase font-bold opacity-60">CARGA DE DATOS POR DEPARTAMENTO</p>
                         </div>
                         <TrendingUp size={18} className="text-success" />
                     </div>
@@ -265,7 +261,7 @@ export default function ManagementView({ summary, recentActivity }: { summary: a
                                 <div className="h-2.5 bg-white/5 rounded-full overflow-hidden shadow-inner flex ring-1 ring-white/5">
                                     <div
                                         className="h-full bg-gradient-to-r from-primary/60 to-primary group-hover/bar:from-primary group-hover/bar:to-blue-400 transition-all duration-700"
-                                        style={{ width: `${(d.reports / 150) * 100}%` }}
+                                        style={{ width: `${Math.min(100, (d.reports / 50) * 100 + 1)}%` }}
                                     />
                                 </div>
                             </div>
@@ -273,24 +269,20 @@ export default function ManagementView({ summary, recentActivity }: { summary: a
                     </div>
                 </div>
 
-                {/* Geography Infrastructure */}
+                {/* Presence & Capacity Monitor */}
                 <div className="bg-[#0F1420]/40 border border-white/5 rounded-[2.5rem] p-8 backdrop-blur-md">
                     <div className="flex items-center justify-between mb-8">
                         <div>
                             <h4 className="text-sm font-black text-white flex items-center gap-2 uppercase tracking-widest">
-                                <Map size={18} className="text-accent" />
-                                Infraestructura
+                                <Users size={18} className="text-blue-400" />
+                                Estado de Conexión
                             </h4>
-                            <p className="text-[10px] text-muted-foreground mt-1 uppercase font-bold opacity-60">DISTRIBUCIÓN DE ASIENTOS Y RECINTOS</p>
+                            <p className="text-[10px] text-muted-foreground mt-1 uppercase font-bold opacity-60">OBSERVADORES EN LÍNEA POR REGIÓN</p>
                         </div>
                         <div className="flex gap-4">
-                            <div className="flex items-center gap-1.5 text-[9px] font-black uppercase text-accent">
-                                <div className="w-1.5 h-1.5 rounded-full bg-accent" />
-                                <span>ASIEN</span>
-                            </div>
-                            <div className="flex items-center gap-1.5 text-[9px] font-black uppercase text-success">
-                                <div className="w-1.5 h-1.5 rounded-full bg-success" />
-                                <span>RECIN</span>
+                            <div className="flex items-center gap-1.5 text-[9px] font-black uppercase text-blue-400">
+                                <div className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
+                                <span>ONLINE</span>
                             </div>
                         </div>
                     </div>
@@ -300,18 +292,13 @@ export default function ManagementView({ summary, recentActivity }: { summary: a
                             <div key={d.name} className="flex flex-col gap-2.5">
                                 <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-widest">
                                     <span className="text-white/60">{d.name}</span>
-                                    <div className="flex gap-4">
-                                        <span className="text-accent">{d.seats}</span>
-                                        <span className="text-success">{d.recintos}</span>
-                                    </div>
+                                    <span className="text-blue-400 font-bold">{d.online} CONECTADOS</span>
                                 </div>
-                                <div className="grid grid-cols-2 gap-3">
-                                    <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
-                                        <div className="h-full bg-accent/30 group-hover:bg-accent/60 transition-all duration-700" style={{ width: `${(d.seats / 500) * 100}%` }} />
-                                    </div>
-                                    <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
-                                        <div className="h-full bg-success/30 group-hover:bg-success/60 transition-all duration-700" style={{ width: `${(d.recintos / 1300) * 100}%` }} />
-                                    </div>
+                                <div className="h-2 bg-white/5 rounded-full overflow-hidden">
+                                    <div
+                                        className="h-full bg-gradient-to-r from-blue-600 to-blue-400 transition-all duration-1000"
+                                        style={{ width: `${Math.min(100, (d.online / 100) * 100)}%` }}
+                                    />
                                 </div>
                             </div>
                         ))}
@@ -327,9 +314,9 @@ export default function ManagementView({ summary, recentActivity }: { summary: a
                             <RefreshCw size={24} className="text-blue-400 animate-spin-slow" />
                         </div>
                         <div>
-                            <h4 className="text-xl font-black text-white uppercase tracking-widest">Transmisión en Vivo</h4>
+                            <h4 className="text-xl font-black text-white uppercase tracking-widest">Transmisión de Campo</h4>
                             <p className="text-[10px] text-muted-foreground mt-1 uppercase tracking-widest font-black opacity-60">
-                                {filteredActivity.length} REGISTROS ACTIVOS
+                                {filteredActivity.length} ACTIVIDADES RECIENTES
                             </p>
                         </div>
                     </div>
@@ -339,10 +326,10 @@ export default function ManagementView({ summary, recentActivity }: { summary: a
                     <table className="w-full text-left border-collapse">
                         <thead>
                             <tr className="bg-white/5 text-[10px] font-black text-muted-foreground uppercase tracking-[0.25em] border-b border-white/5">
-                                <th className="px-8 py-6">Sincronía</th>
-                                <th className="px-8 py-6">Usuario / Jurisdicción</th>
-                                <th className="px-8 py-6">Asiento / Recinto</th>
-                                <th className="px-8 py-6 text-center">Tipo Reporte</th>
+                                <th className="px-8 py-6">Hora</th>
+                                <th className="px-8 py-6">Observador</th>
+                                <th className="px-8 py-6">Recinto</th>
+                                <th className="px-8 py-6 text-center">Tipo</th>
                                 <th className="px-8 py-6 text-right">Estado</th>
                             </tr>
                         </thead>
@@ -351,44 +338,31 @@ export default function ManagementView({ summary, recentActivity }: { summary: a
                                 filteredActivity.map((row, idx) => (
                                     <tr key={idx} className="hover:bg-white/5 transition-all group border-l-4 border-transparent hover:border-primary">
                                         <td className="px-8 py-7">
-                                            <div className="flex flex-col">
-                                                <span className="font-mono text-sm font-bold text-white group-hover:text-primary transition-colors">
-                                                    {new Date(row.fecha_captura).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                                </span>
-                                                <span className="text-[9px] text-muted-foreground uppercase tracking-widest mt-1">Hoy</span>
-                                            </div>
+                                            <span className="font-mono text-sm font-bold text-white">
+                                                {new Date(row.fecha_envio || row.fecha_captura).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                            </span>
                                         </td>
                                         <td className="px-8 py-7">
-                                            <div className="flex items-center gap-4">
-                                                <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-white/10 to-transparent flex items-center justify-center font-black text-xs ring-1 ring-white/10 text-primary uppercase shadow-lg">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary font-bold text-xs uppercase">
                                                     {row.user_name?.[0] || 'U'}
                                                 </div>
-                                                <div className="flex flex-col">
-                                                    <span className="font-black text-sm text-foreground group-hover:text-primary transition-colors">{row.user_name}</span>
-                                                    <span className="text-[9px] text-muted-foreground uppercase font-black tracking-widest">OBSERVADOR</span>
-                                                </div>
+                                                <span className="font-black text-sm text-foreground">{row.user_name}</span>
                                             </div>
                                         </td>
                                         <td className="px-8 py-7">
-                                            <div className="flex flex-col">
-                                                <span className="font-bold text-base text-white/80">{row.recinto_name}</span>
-                                                <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-tighter opacity-50">DISTRITO NACIONAL</span>
-                                            </div>
+                                            <span className="font-bold text-sm text-white/80">{row.recinto_name}</span>
                                         </td>
                                         <td className="px-8 py-7 text-center">
-                                            <span className={`px-5 py-2 rounded-full text-[10px] font-black uppercase tracking-[0.2em] border transition-all ${row.tipo_reporte === 'incidencia'
-                                                    ? 'bg-accent/10 border-accent/40 text-accent shadow-[0_0_20px_rgba(249,115,22,0.2)]'
-                                                    : 'bg-primary/10 border-primary/40 text-primary shadow-[0_0_20px_rgba(37,99,235,0.2)]'
+                                            <span className={`px-4 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border ${row.tipo_reporte === 'incidencia' ? 'border-accent/40 text-accent bg-accent/5' : 'border-primary/40 text-primary bg-primary/5'
                                                 }`}>
                                                 {row.tipo_reporte}
                                             </span>
                                         </td>
                                         <td className="px-8 py-7 text-right">
-                                            <div className="flex items-center justify-end gap-3">
-                                                <span className={`text-[10px] font-black uppercase tracking-widest ${row.estado === 'validado' ? 'text-success' : 'text-orange-500'}`}>
-                                                    {row.estado}
-                                                </span>
-                                                <div className={`w-3 h-3 rounded-full ${row.estado === 'validado' ? 'bg-success shadow-[0_0_15px_rgba(34,197,94,0.6)]' : 'bg-orange-500 animate-pulse shadow-[0_0_15px_rgba(249,115,22,0.6)]'}`} />
+                                            <div className="flex items-center justify-end gap-2">
+                                                <div className={`w-2 h-2 rounded-full ${row.estado === 'validado' ? 'bg-success' : 'bg-orange-500 animate-pulse'}`} />
+                                                <span className="text-[10px] font-black uppercase text-white/60">{row.estado}</span>
                                             </div>
                                         </td>
                                     </tr>
@@ -398,8 +372,7 @@ export default function ManagementView({ summary, recentActivity }: { summary: a
                                     <td colSpan={5} className="px-8 py-32 text-center">
                                         <div className="flex flex-col items-center gap-5 opacity-20">
                                             <SearchX size={80} className="text-muted-foreground" />
-                                            <p className="text-2xl font-black tracking-widest uppercase">Sin resultados</p>
-                                            {searchQuery && <p className="text-sm font-bold">"{searchQuery}" no coincide con ningún registro</p>}
+                                            <p className="text-xl font-black tracking-widest uppercase">Sin reportes registrados</p>
                                         </div>
                                     </td>
                                 </tr>
