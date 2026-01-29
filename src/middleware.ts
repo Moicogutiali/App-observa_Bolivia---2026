@@ -9,11 +9,23 @@ export async function middleware(request: NextRequest) {
     const isLogin = request.nextUrl.pathname === '/login'
 
     if (isDashboard && !user) {
-        return NextResponse.redirect(new URL('/login', request.url))
+        const url = new URL('/login', request.url)
+        const response = NextResponse.redirect(url)
+        // Copy cookies from supabaseResponse to the redirect response
+        supabaseResponse.cookies.getAll().forEach(cookie => {
+            response.cookies.set(cookie.name, cookie.value)
+        })
+        return response
     }
 
     if (isLogin && user) {
-        return NextResponse.redirect(new URL('/dashboard', request.url))
+        const url = new URL('/dashboard', request.url)
+        const response = NextResponse.redirect(url)
+        // Copy cookies from supabaseResponse to the redirect response
+        supabaseResponse.cookies.getAll().forEach(cookie => {
+            response.cookies.set(cookie.name, cookie.value)
+        })
+        return response
     }
 
     return supabaseResponse
