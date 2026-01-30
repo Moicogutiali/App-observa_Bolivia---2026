@@ -1,15 +1,14 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/utils/supabase/server'
-import RedObservadoresView from './RedObservadoresView'
-import MobileNav from '@/components/dashboard/MobileNav'
-import { ChevronRight, LayoutDashboard, LogOut, Users } from 'lucide-react'
+import ConfigurarPerfilView from './view'
+import { ChevronRight, LayoutDashboard, LogOut, Settings } from 'lucide-react'
 import Link from 'next/link'
 import { logout } from '@/app/login/actions'
 import Breadcrumbs from '@/components/Breadcrumbs'
 
 export const dynamic = 'force-dynamic'
 
-export default async function RedPage() {
+export default async function ConfigurarPerfilPage() {
     const supabase = await createClient()
 
     const {
@@ -20,38 +19,17 @@ export default async function RedPage() {
         return redirect('/login')
     }
 
-    // 1. Fetch User Profile for Role Check
     const { data: profile } = await supabase
         .from('usuarios')
-        .select('*, ubicaciones(nombre)')
+        .select('*')
         .eq('id', user.id)
         .single()
 
     if (!profile) return redirect('/login')
 
-    // 2. Only Admin, Coordinador, Supervisor can access this
-    const allowedRoles = ['admin', 'coordinador', 'supervisor']
-    if (!allowedRoles.includes(profile.rol?.toLowerCase())) {
-        return redirect('/dashboard')
-    }
-
-    // 3. Parallel Data Fetching
-    const [managedUsersRes, locationsRes] = await Promise.all([
-        supabase.rpc('get_managed_users', { manager_id: user.id }),
-        supabase.from('ubicaciones').select('id, nombre, nivel').order('nombre')
-    ])
-
-    const managedUsers = managedUsersRes.data
-    const locations = locationsRes.data
-    const fetchError = managedUsersRes.error || locationsRes.error
-
-    if (fetchError) {
-        console.error('Error fetching red data:', fetchError)
-    }
-
     return (
         <div className="min-h-screen flex bg-[#0B0F19] text-foreground font-sans selection:bg-primary/30">
-            {/* Sidebar - Consistent with Dashboard */}
+            {/* Sidebar */}
             <aside className="w-72 bg-[#020617]/90 backdrop-blur-3xl border-r border-white/5 hidden md:flex flex-col sticky top-0 h-screen z-50 shadow-2xl">
                 <div className="p-8">
                     <div className="flex items-center space-x-3 text-primary font-black text-2xl tracking-tighter">
@@ -75,10 +53,10 @@ export default async function RedPage() {
                     <div className="my-6 border-t border-white/5" />
 
                     <div className="text-[10px] font-black text-muted-foreground/60 uppercase tracking-[0.2em] px-3 py-2">Herramientas</div>
-                    <Link href="/dashboard/red" prefetch={false} className="flex items-center justify-between group px-4 py-3 rounded-2xl bg-primary/10 text-primary font-bold transition-all border border-primary/20 shadow-inner shadow-primary/5">
+                    <Link href="/dashboard/configurar-perfil" prefetch={false} className="flex items-center justify-between group px-4 py-3 rounded-2xl bg-primary/10 text-primary font-bold transition-all border border-primary/20 shadow-inner shadow-primary/5">
                         <div className="flex items-center space-x-3">
-                            <Users size={20} />
-                            <span>Red Observadores</span>
+                            <Settings size={20} />
+                            <span>Configuración</span>
                         </div>
                         <ChevronRight size={16} className="opacity-50" />
                     </Link>
@@ -106,21 +84,13 @@ export default async function RedPage() {
             </aside>
 
             {/* Main Content */}
-            <main className="flex-grow p-4 md:p-8 lg:p-10 space-y-8 overflow-y-auto relative pb-32 md:pb-10 w-full max-w-[100vw]">
-                {/* Breadcrumbs */}
+            <main className="flex-grow p-4 md:p-8 lg:p-10 space-y-8 overflow-y-auto relative w-full max-w-[100vw]">
                 <div className="relative z-10">
-                    <Breadcrumbs items={[{ label: 'Inicio', href: '/dashboard' }, { label: 'Red de Observadores', href: '/dashboard/red' }]} />
+                    <Breadcrumbs items={[{ label: 'Inicio', href: '/dashboard' }, { label: 'Configurar Cuenta', href: '/dashboard/configurar-perfil' }]} />
                 </div>
 
-                <RedObservadoresView
-                    users={managedUsers || []}
-                    managerRole={profile.rol}
-                    managerLocation={profile.ubicaciones?.nombre}
-                    locations={locations || []}
-                />
+                <ConfigurarPerfilView />
             </main>
-
-            <MobileNav />
         </div>
     )
 }

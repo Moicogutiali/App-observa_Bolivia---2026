@@ -21,7 +21,7 @@ import {
     Send
 } from 'lucide-react'
 import Link from 'next/link'
-import { inviteUser } from './actions'
+import { inviteUser, deleteUser } from './actions'
 
 interface UserNetwork {
     id: string
@@ -60,15 +60,23 @@ export default function RedObservadoresView({
     const [success, setSuccess] = useState(false)
 
     const filteredUsers = useMemo(() => {
+        console.log('RedObservadoresView: Total users received:', users.length);
+        console.log('RedObservadoresView: First user sample:', users[0]);
+
         return users.filter(u => {
             const query = searchQuery.toLowerCase().trim()
+            if (!query && selectedRole === 'Todos') return true
+
             const matchesSearch =
                 !query ||
-                u.nombre.toLowerCase().includes(query) ||
-                u.email.toLowerCase().includes(query) ||
-                (u.ci && u.ci.includes(query))
+                (u.nombre || '').toLowerCase().includes(query) ||
+                (u.email || '').toLowerCase().includes(query) ||
+                (u.ci || '').toLowerCase().includes(query) ||
+                (u.id || '').toLowerCase().includes(query)
 
-            const matchesRole = selectedRole === 'Todos' || u.rol?.toLowerCase() === selectedRole.toLowerCase()
+            // If there's a search query, we search in ALL roles to avoid confusion
+            const matchesRole = (query.length > 0) || selectedRole === 'Todos' ||
+                (u.rol || '').toLowerCase() === selectedRole.toLowerCase()
 
             return matchesSearch && matchesRole
         })
@@ -131,8 +139,8 @@ export default function RedObservadoresView({
             </div>
 
             {/* Filter Bar */}
-            <div className="bg-[#0F1420]/80 p-4 rounded-3xl border border-white/10 flex flex-col xl:flex-row gap-4 backdrop-blur-3xl shadow-2xl">
-                <div className="relative flex-grow">
+            <div className="bg-[#0F1420]/80 p-4 rounded-3xl border border-white/10 flex flex-col xl:flex-row gap-4 backdrop-blur-3xl shadow-2xl items-center">
+                <div className="relative flex-grow w-full">
                     <Search size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" />
                     <input
                         type="text"
@@ -143,22 +151,41 @@ export default function RedObservadoresView({
                     />
                 </div>
 
-                <div className="flex gap-4">
-                    <select
-                        value={selectedRole}
-                        onChange={(e) => setSelectedRole(e.target.value)}
-                        className="bg-white/5 border border-white/10 px-6 py-4 rounded-2xl text-xs font-black text-white outline-none focus:ring-2 focus:ring-primary/50 appearance-none min-w-[180px]"
-                    >
-                        <option value="Todos">Todos los Roles</option>
-                        <option value="Coordinador">Coordinadores</option>
-                        <option value="Supervisor">Supervisores</option>
-                        <option value="Observador">Observadores</option>
-                    </select>
+                <div className="flex gap-4 w-full xl:w-auto">
+                    <div className="relative flex-grow xl:flex-grow-0">
+                        <select
+                            value={selectedRole}
+                            onChange={(e) => setSelectedRole(e.target.value)}
+                            className="w-full xl:w-[200px] bg-white/5 border border-white/10 pl-6 pr-12 py-4 rounded-2xl text-xs font-black text-white outline-none focus:ring-2 focus:ring-primary/50 appearance-none cursor-pointer hover:bg-white/10 transition-all"
+                        >
+                            <option value="Todos" className="bg-[#111625]">Todos los Roles</option>
+                            <option value="Coordinador" className="bg-[#111625]">Coordinadores</option>
+                            <option value="Supervisor" className="bg-[#111625]">Supervisores</option>
+                            <option value="Observador" className="bg-[#111625]">Observadores</option>
+                        </select>
+                        <ChevronDown size={14} className="absolute right-5 top-1/2 -translate-y-1/2 text-white/40 pointer-events-none" />
+                    </div>
 
-                    <button className="bg-white/5 border border-white/10 px-5 rounded-2xl hover:bg-white/10 transition-colors">
+                    <button className="bg-white/5 border border-white/10 px-5 py-4 rounded-2xl hover:bg-white/10 transition-colors flex items-center justify-center">
                         <Filter size={18} className="text-white" />
                     </button>
                 </div>
+            </div>
+
+            {/* Password Setup Notice */}
+            <div className="bg-primary/10 border border-primary/20 p-5 rounded-3xl flex flex-col sm:flex-row items-center justify-between gap-4 text-xs font-bold text-primary animate-in slide-in-from-top duration-500 backdrop-blur-sm shadow-lg">
+                <div className="flex items-center gap-4">
+                    <div className="p-2.5 bg-primary/20 rounded-xl">
+                        <Shield size={20} className="text-primary" />
+                    </div>
+                    <span className="leading-tight">Los integrantes invitados reciben un enlace de acceso directo. Deben configurar su contraseña en su perfil para ingresos futuros.</span>
+                </div>
+                <Link
+                    href="/dashboard/configurar-perfil"
+                    className="bg-primary/20 hover:bg-primary/30 text-primary px-5 py-2.5 rounded-xl transition-all uppercase tracking-widest font-black text-[10px] whitespace-nowrap"
+                >
+                    Configurar mi cuenta
+                </Link>
             </div>
 
             {/* Users Grid */}
@@ -169,9 +196,9 @@ export default function RedObservadoresView({
                             {/* Role Badge */}
                             <div className="absolute top-6 right-6">
                                 <span className={`text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full border shadow-sm ${user.rol?.toLowerCase() === 'admin' ? 'bg-danger/10 text-danger border-danger/20' :
-                                        user.rol?.toLowerCase() === 'coordinador' ? 'bg-primary/10 text-primary border-primary/20' :
-                                            user.rol?.toLowerCase() === 'supervisor' ? 'bg-accent/10 text-accent border-accent/20' :
-                                                'bg-success/10 text-success border-success/20'
+                                    user.rol?.toLowerCase() === 'coordinador' ? 'bg-primary/10 text-primary border-primary/20' :
+                                        user.rol?.toLowerCase() === 'supervisor' ? 'bg-accent/10 text-accent border-accent/20' :
+                                            'bg-success/10 text-success border-success/20'
                                     }`}>
                                     {user.rol || 'observador'}
                                 </span>
@@ -228,7 +255,15 @@ export default function RedObservadoresView({
                                         Ver Expediente
                                     </button>
                                     {(managerRole === 'admin' || managerRole === 'coordinador') && (
-                                        <button className="px-4 bg-danger/5 hover:bg-danger/10 text-danger/60 hover:text-danger py-3 rounded-xl transition-colors">
+                                        <button
+                                            onClick={async () => {
+                                                if (confirm(`¿Estás seguro de que deseas eliminar a ${user.nombre}? Esta acción borrará su acceso y su perfil.`)) {
+                                                    const res = await deleteUser(user.id);
+                                                    if (res?.error) alert(res.error);
+                                                }
+                                            }}
+                                            className="px-4 bg-danger/5 hover:bg-danger/10 text-danger/60 hover:text-danger py-3 rounded-xl transition-colors"
+                                        >
                                             <XCircle size={14} />
                                         </button>
                                     )}
@@ -237,11 +272,25 @@ export default function RedObservadoresView({
                         </div>
                     ))
                 ) : (
-                    <div className="col-span-full py-32 text-center space-y-6 opacity-30">
-                        <Users size={80} className="mx-auto text-muted-foreground" />
+                    <div className="col-span-full py-32 text-center space-y-6">
+                        <Users size={80} className="mx-auto text-muted-foreground/20" />
                         <div className="space-y-2">
-                            <p className="text-2xl font-black uppercase tracking-[0.2em] text-white">Red Vacía</p>
-                            <p className="text-sm font-medium">No se encontraron integrantes que coincidan con los criterios.</p>
+                            <p className="text-2xl font-black uppercase tracking-[0.2em] text-white/40">
+                                {users.length === 0 ? 'Sin Conexión con la Base' : 'Sin Coincidencias'}
+                            </p>
+                            <p className="text-sm font-medium text-muted-foreground/60 max-w-md mx-auto">
+                                {users.length === 0
+                                    ? 'No se han podido cargar los integrantes de la red. Verifica tus permisos o la conexión.'
+                                    : `No hay registros que coincidan con "${searchQuery}" en la categoría ${selectedRole}. Prueba seleccionando "Todos los Roles".`}
+                            </p>
+                            {searchQuery && (
+                                <button
+                                    onClick={() => { setSearchQuery(''); setSelectedRole('Todos'); }}
+                                    className="mt-4 px-6 py-2 bg-primary/20 text-primary rounded-full text-xs font-black uppercase tracking-widest hover:bg-primary/30 transition-all"
+                                >
+                                    Limpiar Filtros
+                                </button>
+                            )}
                         </div>
                     </div>
                 )}

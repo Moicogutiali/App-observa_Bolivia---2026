@@ -89,20 +89,27 @@ export default function ManagementView({
 
     // Filter Logic
     const filteredReportsData = useMemo(() => {
-        if (selectedDept === 'Todos') return normalizedDeptData
-        return normalizedDeptData.filter(d => d.name === selectedDept)
-    }, [selectedDept, normalizedDeptData])
+        const query = searchQuery.toLowerCase().trim()
+        let data = normalizedDeptData
+
+        if (selectedDept !== 'Todos') {
+            data = data.filter(d => d.name === selectedDept)
+        }
+
+        if (query) {
+            // If searching, also check if departments match the name
+            return data.filter(d => d.name.toLowerCase().includes(query))
+        }
+
+        return data
+    }, [selectedDept, normalizedDeptData, searchQuery])
 
     const filteredActivity = useMemo(() => {
         const query = searchQuery.toLowerCase().trim()
         return recentActivity.filter(item => {
             if (!query) return true
-            return (
-                item.user_name?.toLowerCase().includes(query) ||
-                item.recinto_name?.toLowerCase().includes(query) ||
-                item.tipo_reporte?.toLowerCase().includes(query) ||
-                item.estado?.toLowerCase().includes(query)
-            )
+            const searchStr = `${item.user_name} ${item.recinto_name} ${item.tipo_reporte} ${item.estado}`.toLowerCase()
+            return searchStr.includes(query)
         })
     }, [recentActivity, searchQuery])
 
